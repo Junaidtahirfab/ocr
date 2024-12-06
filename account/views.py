@@ -1,5 +1,5 @@
-from .serializers import (SendOTPSerializer,OtpverifySerializer,
-                        UserSerializer,LoginSerializer,RoleSerializer,
+from .serializers import (SendOTPSerializer,OtpverifySerializer,UserRegisterSerializer,
+                        UserSerializer,LoginSerializer,RoleSerializer,ShareUserSerializer,
                         UserListSerializer,ChangePasswordSerializer,
                         ProfileSerializer,ResetPasswordStep1,ResetPasswordStep2)
 from rest_framework_api_key.permissions import HasAPIKey
@@ -41,7 +41,7 @@ class VerifyOTPView(GenericAPIView):
     
 class UserView(GenericAPIView):
     permission_classes = []
-    serializer_class = UserSerializer
+    serializer_class = UserRegisterSerializer
     authentication_classes = []
 
     def post(self, request):
@@ -172,7 +172,14 @@ class ResetPasswordStep2View(GenericAPIView):
     
     
     
-    
+class SharedUserListView(generics.ListAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ShareUserSerializer
+
+    def get_queryset(self):
+        return User.objects.filter(company=self.request.user.company)
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
     
     
     

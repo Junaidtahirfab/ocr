@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django_extensions',
     'django_filters',
     'account',
+    'ocrfile',
 ]
 
 MIDDLEWARE = [

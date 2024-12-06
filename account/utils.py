@@ -20,7 +20,6 @@ def create_roles():
     # Create roles if they do not already exist
     for role in roles:
         Role.objects.get_or_create(name=role)
-        print(f"Role '{role}' created or already exists.")
         
         
 def send_otp(email: str, body_type: str) -> bool:

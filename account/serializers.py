@@ -71,7 +71,7 @@ class RoleSerializer(serializers.ModelSerializer):
         model = Role
         fields = ['id', 'name']
 
-class UserSerializer(serializers.ModelSerializer):
+class UserRegisterSerializer(serializers.ModelSerializer):
     # Nested CompanySerializer
     company = CompanySerializer()
     role_name = serializers.SerializerMethodField()
@@ -79,6 +79,7 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['email', 'first_name', 'last_name', 'phone', 'password', 'company',"role_name"]
+        extra_kwargs = {'password': {'write_only': True}} 
 
     def create(self, validated_data):
         admin_role = Role.objects.filter(name="Admin").first()
@@ -174,7 +175,7 @@ class UserSerializer(serializers.ModelSerializer):
 
         # Assign the company of the admin to the new user
         company = admin_user.company
-        print("company.....",company)
+
 
         # Pop the password and role fields from validated data
         password = validated_data.pop('password')
@@ -303,3 +304,26 @@ class ResetPasswordStep2(serializers.Serializer):
         return attrs
     
     
+
+class ShareUserSerializer(serializers.ModelSerializer):
+    # Nested CompanySerializer
+    company = CompanySerializer()
+    role_name = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', "role_name", "username"]
+    def get_role_name(self, obj):
+        # Return the role name for the user
+        return obj.role.name if obj.role else None
+    
+    def get_username(self, obj):
+        # Return the username for the user
+        first_name = obj.first_name
+        last_name = obj.last_name
+        return f"{first_name} {last_name}"
+
+
+
+
