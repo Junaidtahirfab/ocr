@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+import socket
 from pathlib import Path
 from django.utils.timezone import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -160,7 +161,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'conf.wsgi.application'
 
 
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+MEDIA_ROOT = os.path.join(BASE_DIR,'media')
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtppro.zoho.eu'
 EMAIL_HOST_USER = 'no-reply@datamedic.uk'
@@ -202,6 +203,22 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 
+def get_ip():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        # doesn't even have to be reachable
+        s.connect(("10.255.255.255", 1))
+        IP = s.getsockname()[0]
+    except Exception:
+        IP = "127.0.0.1"
+    finally:
+        s.close()
+    return IP
+
+
+local_ip = get_ip()
+# MEDIA_URL = "http://localhost:8000/media/".format(local_ip)
+MEDIA_URL = '/media/'
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 

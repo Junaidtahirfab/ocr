@@ -1,6 +1,9 @@
 from rest_framework import generics, permissions, status
 from rest_framework.response import Response
 from .models import Folder,CompanyFile
+from account.models import User
+from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 from .serializers import FolderSerializer,CompanyFileSerializer
 from django.db.models import Q
 
@@ -9,6 +12,7 @@ class FolderApiView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = FolderSerializer
     queryset = Folder.objects.all()
+    lookup_field = 'id'
 
     def get_queryset(self):
         user = self.request.user
@@ -40,17 +44,17 @@ class FolderApiView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
             # Get all files related to the folder
             files = CompanyFile.objects.filter(folder=folder)
             print("files",files)
-            shared_users= []
+            shared_users= ''
+            shared_user_count= 0
             for file in files:
+                shared_user_count = file.shared_with.count()
                 if file.shared_with:
-                    print("file.shared_with",file.shared_with)
-                print("did not shrad")
-            # Folder data with files and shared user details
+                    shared_users = file.shared_with.all().values_list('email','first_name')
             folder_data = {
                 "folder_id": folder.id,
                 "folder_name": folder.name,
                 "created_by": folder.created_by.email,
-                "shared_user_count": file.shared_with.count() if file.shared_with else 0,
+                "shared_user_count": shared_user_count,
                 "shared_users": shared_users,
                 "files": [
                     {
@@ -66,7 +70,11 @@ class FolderApiView(generics.ListCreateAPIView, generics.RetrieveUpdateDestroyAP
 
         return Response(response_data, status=status.HTTP_200_OK)
     
+    def patch(self, request, *args, **kwargs):
+        return self.partial_update(request, *args, **kwargs)
     
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 class CompanyFileApiView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -87,7 +95,50 @@ class CompanyFileApiView(generics.ListCreateAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class AddSharedUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
 
+    def patch(self, request, pk):
+        print("here")
+        company_file = get_object_or_404(CompanyFile, pk=pk)
+        # Retrieve the new user ID from the request
+        shared_user_id = request.data.get("shared_with")
+        if not shared_user_id:
+            return Response({"error": "'shared_with' field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            new_user = User.objects.get(pk=shared_user_id)
+            company_file.shared_with.add(new_user)
+            company_file.save()
+            return Response({"message": f"User {new_user.first_name} added successfully to the shared list."}, status=status.HTTP_200_OK)
+        except User.DoesNotExist:
+            return Response({"error": "User with the given ID does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+class RemoveSharedUserView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request, pk):
+        company_file = get_object_or_404(CompanyFile, pk=pk)
+        # Retrieve the user ID to be removed from the request
+        shared_user_id = request.data.get("shared_with")
+        if not shared_user_id:
+            return Response({"error": "'shared_with' field is required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            # Get the user instance
+            user_to_remove = User.objects.get(pk=shared_user_id)
+            # Remove the user from the shared_with field
+            if user_to_remove in company_file.shared_with.all():
+                company_file.shared_with.remove(user_to_remove)
+                company_file.save()
+                return Response({"message": f"User {user_to_remove.username} removed successfully from the shared list."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "User is not in the shared list."}, status=status.HTTP_404_NOT_FOUND)
+
+        except User.DoesNotExist:
+            return Response({"error": "User with the given ID does not exist."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 # from rest_framework.parsers import MultiPartParser, FormParser
 
 # class BulkFileUploadApiView(APIView):
