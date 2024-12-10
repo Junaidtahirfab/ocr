@@ -1,0 +1,17 @@
+
+# Django-related
+migrations/
+db.sqlite3
+
+# Python-related
+__pycache__/
+*.pyc
+
+# Media files
+media/
+
+# SQLite
+__pycache__Sqlite
+*.pyc
+__pycache__Sqlite
+__pycache__
